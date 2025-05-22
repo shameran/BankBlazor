@@ -1,4 +1,4 @@
-﻿namespace BankBlazor.Client.Models
+﻿namespace BankAPI.DTos
 {
     public class TransferDto
     {
