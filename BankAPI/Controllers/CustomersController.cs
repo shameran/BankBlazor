@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Linq;
 
 namespace BankAPI.Controllers
 {
@@ -17,8 +18,9 @@ namespace BankAPI.Controllers
             _context = context;
         }
 
+        
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Customer>>> GetCustomers()
+        public async Task<ActionResult<IEnumerable<Customer>>> GetCustomers(int page = 1, int pageSize = 20)
         {
             var dbName = _context.Database.GetDbConnection().Database;
             Console.WriteLine($"🛠️ Ansluten till databas: {dbName}");
@@ -28,7 +30,11 @@ namespace BankAPI.Controllers
                 return Problem("Customers-tabellen finns inte i databasen.");
             }
 
-            var customers = await _context.Customers.ToListAsync();
+            var customers = await _context.Customers
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
             Console.WriteLine($"🔍 Antal kunder hämtade: {customers.Count}");
 
             return customers;

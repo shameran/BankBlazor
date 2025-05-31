@@ -1,7 +1,6 @@
 ﻿@page "/dashboard"
 @using BankBlazor.Client.Services
 @using BankBlazor.Shared.Models
-@using BankBlazor.Shared.Dtos
 @inject CustomerService CustomerService
 @inject TransactionService TransactionService
 
@@ -29,6 +28,12 @@ else
                     </li>
                 }
             </ul>
+
+            <div class="mt-2 d-flex justify-content-between align-items-center">
+                <button class="btn btn-primary" @onclick="PreviousPage" disabled="@(_page == 1)">Föregående</button>
+                <span>Sida @_page av @_maxPage</span>
+                <button class="btn btn-primary" @onclick="NextPage" disabled="@(_page == _maxPage)">Nästa</button>
+            </div>
         </div>
         <div class="col-8">
             @if (selectedCustomer == null)
@@ -72,11 +77,27 @@ else
     private List<Account>? accounts;
     private string? errorMessage;
 
+    private int _page = 1;
+    private int _pageSize = 20;
+    private int _maxPage = 50;
+
     protected override async Task OnInitializedAsync()
+    {
+        await LoadCustomers();
+    }
+
+    private async Task LoadCustomers()
     {
         try
         {
-            customers = await CustomerService.GetAllCustomersAsync();
+            customers = await CustomerService.GetCustomersAsync(_page, _pageSize);
+            errorMessage = null;
+
+            if (selectedCustomer != null && !customers.Any(c => c.CustomerId == selectedCustomer.CustomerId))
+            {
+                selectedCustomer = null;
+                accounts = null;
+            }
         }
         catch (Exception ex)
         {
@@ -93,12 +114,29 @@ else
         try
         {
             var allAccounts = await CustomerService.GetAccountsAsync();
-            // Filtrera konton som tillhör vald kund
             accounts = allAccounts.Where(a => a.CustomerId == selectedCustomer.CustomerId).ToList();
         }
         catch (Exception ex)
         {
             errorMessage = $"Fel vid hämtning av konton: {ex.Message}";
+        }
+    }
+
+    private async Task PreviousPage()
+    {
+        if (_page > 1)
+        {
+            _page--;
+            await LoadCustomers();
+        }
+    }
+
+    private async Task NextPage()
+    {
+        if (_page < _maxPage)
+        {
+            _page++;
+            await LoadCustomers();
         }
     }
 }

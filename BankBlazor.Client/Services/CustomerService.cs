@@ -25,15 +25,15 @@ public class CustomerService
         return customers ?? new List<Customer>();
     }
 
+    public async Task<List<Customer>> GetCustomersAsync(int page, int pageSize)
+    {
+        var customers = await _http.GetFromJsonAsync<List<Customer>>($"api/customers?page={page}&pageSize={pageSize}");
+        return customers ?? new List<Customer>();
+    }
+
     public async Task<List<Account>> GetAccountsAsync()
     {
         var accounts = await _http.GetFromJsonAsync<List<Account>>("api/customers/accounts");
-        return accounts ?? new List<Account>();
-    }
-
-    public async Task<List<Account>> GetAccountsForCustomerAsync(int customerId)
-    {
-        var accounts = await _http.GetFromJsonAsync<List<Account>>($"api/customers/{customerId}/accounts");
         return accounts ?? new List<Account>();
     }
 
