@@ -20,7 +20,6 @@ namespace BankAPI.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Customer>>> GetCustomers()
         {
-            // Logga vilken databas som används
             var dbName = _context.Database.GetDbConnection().Database;
             Console.WriteLine($"🛠️ Ansluten till databas: {dbName}");
 
@@ -51,6 +50,18 @@ namespace BankAPI.Controllers
             }
 
             return customer;
+        }
+
+        [HttpGet("accounts")]
+        public async Task<ActionResult<List<Account>>> GetAccounts()
+        {
+            if (_context.Accounts == null)
+            {
+                return Problem("Accounts-tabellen finns inte i databasen.");
+            }
+
+            var accounts = await _context.Accounts.ToListAsync();
+            return accounts;
         }
 
         [HttpPut("{id}")]

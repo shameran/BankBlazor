@@ -1,5 +1,104 @@
 ﻿@page "/dashboard"
+@using BankBlazor.Client.Services
+@using BankBlazor.Shared.Models
+@using BankBlazor.Shared.Dtos
+@inject CustomerService CustomerService
+@inject TransactionService TransactionService
 
 <h1>Dashboard</h1>
 
-<p>Det här är dashboard-sidan.</p>
+@if (errorMessage != null)
+{
+    <p class="text-danger">@errorMessage</p>
+}
+@if (customers == null)
+{
+    <p>Laddar kunder...</p>
+}
+else
+{
+    <div class="row">
+        <div class="col-4">
+            <h3>Kunder</h3>
+            <ul class="list-group">
+                @foreach (var customer in customers)
+                {
+                    <li class="list-group-item @(selectedCustomer?.CustomerId == customer.CustomerId ? "active" : "")"
+                        @onclick="() => SelectCustomer(customer)">
+                        @customer.Name (ID: @customer.CustomerId)
+                    </li>
+                }
+            </ul>
+        </div>
+        <div class="col-8">
+            @if (selectedCustomer == null)
+            {
+                <p>Välj en kund för att se konton.</p>
+            }
+            else if (accounts == null)
+            {
+                <p>Laddar konton för @selectedCustomer.Name...</p>
+            }
+            else
+            {
+                <h3>Konton för @selectedCustomer.Name</h3>
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>AccountId</th>
+                            <th>AccountType</th>
+                            <th>Balance</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var account in accounts)
+                        {
+                            <tr>
+                                <td>@account.AccountId</td>
+                                <td>@account.AccountType</td>
+                                <td>@account.Balance.ToString("C")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    private List<Customer>? customers;
+    private Customer? selectedCustomer;
+    private List<Account>? accounts;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            customers = await CustomerService.GetAllCustomersAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Fel vid hämtning av kunder: {ex.Message}";
+        }
+    }
+
+    private async Task SelectCustomer(Customer customer)
+    {
+        selectedCustomer = customer;
+        accounts = null;
+        errorMessage = null;
+
+        try
+        {
+            var allAccounts = await CustomerService.GetAccountsAsync();
+            // Filtrera konton som tillhör vald kund
+            accounts = allAccounts.Where(a => a.CustomerId == selectedCustomer.CustomerId).ToList();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Fel vid hämtning av konton: {ex.Message}";
+        }
+    }
+}
