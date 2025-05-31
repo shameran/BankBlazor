@@ -1,7 +1,8 @@
-﻿using BankAPI.DTos;
-using BankAPI.Models;
+﻿using BankBlazor.Shared.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace BankAPI.Controllers
 {
@@ -16,17 +17,32 @@ namespace BankAPI.Controllers
             _context = context;
         }
 
-        
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Customer>>> GetCustomers()
         {
-            return await _context.Customers.ToListAsync();
+            // Logga vilken databas som används
+            var dbName = _context.Database.GetDbConnection().Database;
+            Console.WriteLine($"🛠️ Ansluten till databas: {dbName}");
+
+            if (_context.Customers == null)
+            {
+                return Problem("Customers-tabellen finns inte i databasen.");
+            }
+
+            var customers = await _context.Customers.ToListAsync();
+            Console.WriteLine($"🔍 Antal kunder hämtade: {customers.Count}");
+
+            return customers;
         }
 
-        
         [HttpGet("{id}")]
         public async Task<ActionResult<Customer>> GetCustomer(int id)
         {
+            if (_context.Customers == null)
+            {
+                return NotFound();
+            }
+
             var customer = await _context.Customers.FindAsync(id);
 
             if (customer == null)
@@ -37,7 +53,6 @@ namespace BankAPI.Controllers
             return customer;
         }
 
-        
         [HttpPut("{id}")]
         public async Task<IActionResult> PutCustomer(int id, Customer customer)
         {
@@ -67,20 +82,28 @@ namespace BankAPI.Controllers
             return NoContent();
         }
 
-        
         [HttpPost]
         public async Task<ActionResult<Customer>> PostCustomer(Customer customer)
         {
+            if (_context.Customers == null)
+            {
+                return Problem("Customers-tabellen finns inte i databasen.");
+            }
+
             _context.Customers.Add(customer);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction("GetCustomer", new { id = customer.CustomerId }, customer);
+            return CreatedAtAction(nameof(GetCustomer), new { id = customer.CustomerId }, customer);
         }
 
-        
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCustomer(int id)
         {
+            if (_context.Customers == null)
+            {
+                return NotFound();
+            }
+
             var customer = await _context.Customers.FindAsync(id);
             if (customer == null)
             {
@@ -95,7 +118,7 @@ namespace BankAPI.Controllers
 
         private bool CustomerExists(int id)
         {
-            return _context.Customers.Any(e => e.CustomerId == id);
+            return _context.Customers?.Any(e => e.CustomerId == id) ?? false;
         }
     }
 }

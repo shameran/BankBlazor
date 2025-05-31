@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
-
-namespace BankBlazor.Client;
+using BankBlazor.Client; // Kontrollera att detta är rätt namespace för din klient
+using BankBlazor.Client.Services; // För TransactionService och CustomerService
 
 public class Program
 {
@@ -11,7 +11,12 @@ public class Program
         builder.RootComponents.Add<App>("#app");
         builder.RootComponents.Add<HeadOutlet>("head::after");
 
-        builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
+        // Registrera dina services så att de kan injectas i komponenterna
+        builder.Services.AddScoped<CustomerService>();
+        builder.Services.AddScoped<TransactionService>();
+
+        // Viktigt: BaseAddress ska peka på din API (backend)
+        builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("https://localhost:7023/") });
 
         await builder.Build().RunAsync();
     }

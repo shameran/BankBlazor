@@ -1,4 +1,4 @@
-﻿using BankAPI.Models;
+﻿using BankBlazor.Shared.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace BankAPI

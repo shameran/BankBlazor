@@ -1,6 +1,133 @@
-﻿namespace BankBlazor.Client.Pages
+﻿@page "/transactions"
+@using BankBlazor.Client.Services
+@using BankBlazor.Shared.Models
+@using BankBlazor.Shared.Dtos
+@inject CustomerService CustomerService
+@inject TransactionService TransactionService
+
+<h1>Transactions</h1>
+
+@if (errorMessage != null)
 {
-    public class Transactions
+    <p class="text-danger">@errorMessage</p>
+}
+@if (successMessage != null)
+{
+    <p class="text-success">@successMessage</p>
+}
+
+<EditForm Model="@transactionModel" OnValidSubmit="HandleValidSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div>
+        <label>Från konto:</label>
+        <InputSelect @bind-Value="transactionModel.FromAccountId">
+            <option value="">-- Välj konto --</option>
+            @foreach (var account in accounts)
+            {
+                <option value="@account.AccountId">@account.AccountId - Saldo: @account.Balance.ToString("C")</option>
+            }
+        </InputSelect>
+    </div>
+
+    <div>
+        <label>Transaktionstyp:</label>
+        <InputSelect @bind-Value="transactionModel.TransactionType">
+            <option value="Deposit">Insättning</option>
+            <option value="Withdraw">Uttag</option>
+            <option value="Transfer">Överföring</option>
+        </InputSelect>
+    </div>
+
+    @if (transactionModel.TransactionType == "Transfer")
     {
+        <div>
+            <label>Till konto:</label>
+            <InputSelect @bind-Value="transactionModel.ToAccountId">
+                <option value="">-- Välj mottagarkonto --</option>
+                @foreach (var account in accounts)
+                {
+                    @* Undvik samma konto som från-konto *@
+                    if (account.AccountId != transactionModel.FromAccountId)
+                    {
+                        <option value="@account.AccountId">@account.AccountId</option>
+                    }
+                }
+            </InputSelect>
+        </div>
+    }
+
+    <div>
+        <label>Belopp:</label>
+        <InputNumber @bind-Value="transactionModel.Amount" />
+    </div>
+
+    <button type="submit">Genomför transaktion</button>
+</EditForm>
+
+@code {
+    private List<Account> accounts = new();
+    private string? errorMessage;
+    private string? successMessage;
+
+    private TransactionInputModel transactionModel = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        accounts = await CustomerService.GetAccountsAsync(); // Exempel på metod för att hämta konton
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        errorMessage = null;
+        successMessage = null;
+
+        if (transactionModel.Amount <= 0)
+        {
+            errorMessage = "Beloppet måste vara större än noll.";
+            return;
+        }
+
+        try
+        {
+            switch (transactionModel.TransactionType)
+            {
+                case "Deposit":
+                    await TransactionService.DepositAsync(transactionModel.FromAccountId, transactionModel.Amount);
+                    break;
+                case "Withdraw":
+                    await TransactionService.WithdrawAsync(transactionModel.FromAccountId, transactionModel.Amount);
+                    break;
+                case "Transfer":
+                    if (transactionModel.ToAccountId == 0)
+                    {
+                        errorMessage = "Du måste välja mottagarkonto vid överföring.";
+                        return;
+                    }
+                    await TransactionService.TransferAsync(transactionModel.FromAccountId, transactionModel.ToAccountId, transactionModel.Amount);
+                    break;
+                default:
+                    errorMessage = "Ogiltig transaktionstyp.";
+                    return;
+            }
+
+            successMessage = "Transaktionen genomfördes!";
+            // Uppdatera konton för att visa nya saldon
+            accounts = await CustomerService.GetAccountsAsync();
+            transactionModel = new TransactionInputModel();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Fel vid transaktion: {ex.Message}";
+        }
+    }
+
+    private class TransactionInputModel
+    {
+        public int FromAccountId { get; set; }
+        public int ToAccountId { get; set; }
+        public decimal Amount { get; set; }
+        public string TransactionType { get; set; } = "Deposit";
     }
 }
