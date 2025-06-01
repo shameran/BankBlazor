@@ -1,15 +1,14 @@
 ﻿@page "/dashboard"
-@using BankBlazor.Client.Services
-@using BankBlazor.Shared.Models
-@inject CustomerService CustomerService
-@inject TransactionService TransactionService
+@using BankBlazor.Shared.Dtos
+@inject AccountService AccountService
 
 <h1>Dashboard</h1>
 
-@if (errorMessage != null)
+@if (!string.IsNullOrEmpty(errorMessage))
 {
     <p class="text-danger">@errorMessage</p>
 }
+
 @if (customers == null)
 {
     <p>Laddar kunder...</p>
@@ -31,55 +30,57 @@ else
 
             <div class="mt-2 d-flex justify-content-between align-items-center">
                 <button class="btn btn-primary" @onclick="PreviousPage" disabled="@(_page == 1)">Föregående</button>
-                <span>Sida @_page av @_maxPage</span>
-                <button class="btn btn-primary" @onclick="NextPage" disabled="@(_page == _maxPage)">Nästa</button>
+                <span>Sida @_page</span>
+                <button class="btn btn-primary" @onclick="NextPage" disabled="@(customers.Count < _pageSize)">Nästa</button>
             </div>
         </div>
+
         <div class="col-8">
             @if (selectedCustomer == null)
             {
                 <p>Välj en kund för att se konton.</p>
             }
-            else if (accounts == null)
-            {
-                <p>Laddar konton för @selectedCustomer.Name...</p>
-            }
             else
             {
                 <h3>Konton för @selectedCustomer.Name</h3>
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>AccountId</th>
-                            <th>AccountType</th>
-                            <th>Balance</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var account in accounts)
-                        {
+                @if (selectedCustomer.Accounts.Count == 0)
+                {
+                    <p>Inga konton för denna kund.</p>
+                }
+                else
+                {
+                    <table class="table table-striped">
+                        <thead>
                             <tr>
-                                <td>@account.AccountId</td>
-                                <td>@account.AccountType</td>
-                                <td>@account.Balance.ToString("C")</td>
+                                <th>AccountId</th>
+                                <th>AccountType</th>
+                                <th>Balance</th>
                             </tr>
-                        }
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            @foreach (var account in selectedCustomer.Accounts)
+                            {
+                                <tr>
+                                    <td>@account.AccountId</td>
+                                    <td>@account.AccountType</td>
+                                    <td>@account.Balance.ToString("C")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
             }
         </div>
     </div>
 }
 
 @code {
-    private List<Customer>? customers;
-    private Customer? selectedCustomer;
-    private List<Account>? accounts;
+    private List<CustomerWithAccountsDto>? customers;
+    private CustomerWithAccountsDto? selectedCustomer;
     private string? errorMessage;
 
     private int _page = 1;
     private int _pageSize = 20;
-    private int _maxPage = 50;
 
     protected override async Task OnInitializedAsync()
     {
@@ -90,14 +91,9 @@ else
     {
         try
         {
-            customers = await CustomerService.GetCustomersAsync(_page, _pageSize);
+            customers = await AccountService.GetCustomersWithAccountsAsync(_page, _pageSize);
+            selectedCustomer = null;
             errorMessage = null;
-
-            if (selectedCustomer != null && !customers.Any(c => c.CustomerId == selectedCustomer.CustomerId))
-            {
-                selectedCustomer = null;
-                accounts = null;
-            }
         }
         catch (Exception ex)
         {
@@ -105,21 +101,9 @@ else
         }
     }
 
-    private async Task SelectCustomer(Customer customer)
+    private void SelectCustomer(CustomerWithAccountsDto customer)
     {
         selectedCustomer = customer;
-        accounts = null;
-        errorMessage = null;
-
-        try
-        {
-            var allAccounts = await CustomerService.GetAccountsAsync();
-            accounts = allAccounts.Where(a => a.CustomerId == selectedCustomer.CustomerId).ToList();
-        }
-        catch (Exception ex)
-        {
-            errorMessage = $"Fel vid hämtning av konton: {ex.Message}";
-        }
     }
 
     private async Task PreviousPage()
@@ -133,7 +117,7 @@ else
 
     private async Task NextPage()
     {
-        if (_page < _maxPage)
+        if (customers != null && customers.Count == _pageSize)
         {
             _page++;
             await LoadCustomers();
