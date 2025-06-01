@@ -2,81 +2,84 @@
 @using BankBlazor.Shared.Dtos
 @inject AccountService AccountService
 
-<h1>Dashboard</h1>
+<div class="container mt-4">
+    <h1>Dashboard</h1>
 
-@if (!string.IsNullOrEmpty(errorMessage))
-{
-    <p class="text-danger">@errorMessage</p>
-}
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger">@errorMessage</div>
+    }
 
-@if (customers == null)
-{
-    <p>Laddar kunder...</p>
-}
-else if (customers.Count == 0)
-{
-    <p>Inga kunder hittades i databasen.</p>
-}
-else
-{
-    <div class="row">
-        <div class="col-4">
-            <h3>Kunder</h3>
-            <ul class="list-group">
-                @foreach (var customer in customers)
-                {
-                    <li class="list-group-item @(selectedCustomer?.CustomerId == customer.CustomerId ? "active" : "")"
-                        @onclick="() => SelectCustomer(customer)">
-                        @customer.FullName (ID: @customer.CustomerId)
-                    </li>
-                }
-            </ul>
+    @if (customers == null)
+    {
+        <p>Laddar kunder...</p>
+    }
+    else if (customers.Count == 0)
+    {
+        <p>Inga kunder hittades i databasen.</p>
+    }
+    else
+    {
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <h3>Kunder</h3>
+                <ul class="list-group">
+                    @foreach (var customer in customers)
+                    {
+                        <li class="list-group-item @(selectedCustomer?.CustomerId == customer.CustomerId ? "active" : "")"
+                            style="cursor:pointer"
+                            @onclick="() => SelectCustomer(customer)">
+                            @customer.FullName (ID: @customer.CustomerId)
+                        </li>
+                    }
+                </ul>
 
-            <div class="mt-2 d-flex justify-content-between align-items-center">
-                <button class="btn btn-primary" @onclick="PreviousPage" disabled="@(_page == 1)">Föregående</button>
-                <span>Sida @_page</span>
-                <button class="btn btn-primary" @onclick="NextPage" disabled="@(customers.Count < _pageSize)">Nästa</button>
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <button class="btn btn-primary" @onclick="PreviousPage" disabled="@(_page == 1)">Föregående</button>
+                    <span>Sida @_page</span>
+                    <button class="btn btn-primary" @onclick="NextPage" disabled="@(customers.Count < _pageSize)">Nästa</button>
+                </div>
             </div>
-        </div>
 
-        <div class="col-8">
-            @if (selectedCustomer == null)
-            {
-                <p>Välj en kund för att se konton.</p>
-            }
-            else
-            {
-                <h3>Konton för @selectedCustomer.FullName</h3>
-                @if (selectedCustomer.Accounts == null || selectedCustomer.Accounts.Count == 0)
+            <div class="col-md-8">
+                @if (selectedCustomer == null)
                 {
-                    <p>Inga konton för denna kund.</p>
+                    <p>Välj en kund för att se konton.</p>
                 }
                 else
                 {
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>AccountId</th>
-                                <th>AccountType</th>
-                                <th>Balance</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var account in selectedCustomer.Accounts)
-                            {
+                    <h3>Konton för @selectedCustomer.FullName</h3>
+                    @if (selectedCustomer.Accounts == null || selectedCustomer.Accounts.Count == 0)
+                    {
+                        <p>Inga konton för denna kund.</p>
+                    }
+                    else
+                    {
+                        <table class="table table-striped table-hover">
+                            <thead class="table-primary">
                                 <tr>
-                                    <td>@account.AccountId</td>
-                                    <td>@account.AccountType</td>
-                                    <td>@account.Balance.ToString("C")</td>
+                                    <th>AccountId</th>
+                                    <th>AccountType</th>
+                                    <th>Balance</th>
                                 </tr>
-                            }
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                @foreach (var account in selectedCustomer.Accounts)
+                                {
+                                    <tr>
+                                        <td>@account.AccountId</td>
+                                        <td>@account.AccountType</td>
+                                        <td>@account.Balance.ToString("C")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
                 }
-            }
+            </div>
         </div>
-    </div>
-}
+    }
+</div>
 
 @code {
     private List<CustomerWithAccountsDto>? customers;
@@ -96,27 +99,12 @@ else
         try
         {
             customers = await AccountService.GetCustomersWithAccountsAsync(_page, _pageSize);
-
-            if (customers == null || customers.Count == 0)
-            {
-                Console.WriteLine("Ingen kunddata hämtades från API:t.");
-            }
-            else
-            {
-                Console.WriteLine($"Antal kunder hämtade: {customers.Count}");
-                foreach (var c in customers)
-                {
-                    Console.WriteLine($"Kund: {c.CustomerId}, Namn: {c.FullName}, Konton: {c.Accounts.Count}");
-                }
-            }
-
             selectedCustomer = null;
             errorMessage = null;
         }
         catch (Exception ex)
         {
             errorMessage = $"Fel vid hämtning av kunder: {ex.Message}";
-            Console.Error.WriteLine(errorMessage);
         }
     }
 
