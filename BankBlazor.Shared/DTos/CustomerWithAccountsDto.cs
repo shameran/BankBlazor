@@ -10,7 +10,11 @@
     public class CustomerWithAccountsDto
     {
         public int CustomerId { get; set; }
-        public string Name { get; set; } = string.Empty;
+        public string Givenname { get; set; } = string.Empty;
+        public string Surname { get; set; } = string.Empty;
         public List<AccountDto> Accounts { get; set; } = new();
+
+        
+        public string FullName => $"{Givenname} {Surname}";
     }
 }

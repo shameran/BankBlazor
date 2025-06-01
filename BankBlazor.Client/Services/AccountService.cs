@@ -3,6 +3,7 @@ using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using System;
 
 public class AccountService
 {
@@ -15,8 +16,24 @@ public class AccountService
 
     public async Task<List<CustomerWithAccountsDto>> GetCustomersWithAccountsAsync(int page, int pageSize)
     {
-        var result = await _http.GetFromJsonAsync<List<CustomerWithAccountsDto>>(
-            $"api/account/customers-with-accounts?page={page}&pageSize={pageSize}");
-        return result ?? new List<CustomerWithAccountsDto>();
+        try
+        {
+            var response = await _http.GetFromJsonAsync<List<CustomerWithAccountsDto>>(
+                $"api/account/customers-with-accounts?page={page}&pageSize={pageSize}");
+
+            if (response == null)
+            {
+                Console.WriteLine("API svarade med null – tom lista returneras.");
+                return new List<CustomerWithAccountsDto>();
+            }
+
+            Console.WriteLine($"Hämtade {response.Count} kunder från API.");
+            return response;
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Fel vid hämtning från API: {ex.Message}");
+            return new List<CustomerWithAccountsDto>();
+        }
     }
 }

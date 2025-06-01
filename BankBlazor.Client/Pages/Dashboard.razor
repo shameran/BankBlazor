@@ -13,6 +13,10 @@
 {
     <p>Laddar kunder...</p>
 }
+else if (customers.Count == 0)
+{
+    <p>Inga kunder hittades i databasen.</p>
+}
 else
 {
     <div class="row">
@@ -23,7 +27,7 @@ else
                 {
                     <li class="list-group-item @(selectedCustomer?.CustomerId == customer.CustomerId ? "active" : "")"
                         @onclick="() => SelectCustomer(customer)">
-                        @customer.Name (ID: @customer.CustomerId)
+                        @customer.FullName (ID: @customer.CustomerId)
                     </li>
                 }
             </ul>
@@ -42,8 +46,8 @@ else
             }
             else
             {
-                <h3>Konton för @selectedCustomer.Name</h3>
-                @if (selectedCustomer.Accounts.Count == 0)
+                <h3>Konton för @selectedCustomer.FullName</h3>
+                @if (selectedCustomer.Accounts == null || selectedCustomer.Accounts.Count == 0)
                 {
                     <p>Inga konton för denna kund.</p>
                 }
@@ -92,12 +96,27 @@ else
         try
         {
             customers = await AccountService.GetCustomersWithAccountsAsync(_page, _pageSize);
+
+            if (customers == null || customers.Count == 0)
+            {
+                Console.WriteLine("Ingen kunddata hämtades från API:t.");
+            }
+            else
+            {
+                Console.WriteLine($"Antal kunder hämtade: {customers.Count}");
+                foreach (var c in customers)
+                {
+                    Console.WriteLine($"Kund: {c.CustomerId}, Namn: {c.FullName}, Konton: {c.Accounts.Count}");
+                }
+            }
+
             selectedCustomer = null;
             errorMessage = null;
         }
         catch (Exception ex)
         {
             errorMessage = $"Fel vid hämtning av kunder: {ex.Message}";
+            Console.Error.WriteLine(errorMessage);
         }
     }
 
