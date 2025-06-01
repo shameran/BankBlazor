@@ -27,7 +27,8 @@ namespace BankAPI.Controllers
                     AccountId = t.AccountId,
                     Amount = t.Amount,
                     Type = t.Type,
-                    Date = t.Date
+                    Date = t.Date,
+                    BalanceAfter = t.Balance
                 })
                 .FirstOrDefaultAsync();
 
@@ -49,7 +50,8 @@ namespace BankAPI.Controllers
                     AccountId = t.AccountId,
                     Amount = t.Amount,
                     Type = t.Type,
-                    Date = t.Date
+                    Date = t.Date,
+                    BalanceAfter = t.Balance // ✅ inkluderar saldot efter transaktionen
                 })
                 .ToListAsync();
 
@@ -72,7 +74,7 @@ namespace BankAPI.Controllers
             {
                 AccountId = account.AccountId,
                 Amount = request.Amount,
-                Type = "Credit",             // Credit för insättning
+                Type = "Credit",             // Insättning
                 Operation = "Deposit",
                 Date = DateTime.UtcNow,
                 Balance = account.Balance
@@ -102,7 +104,7 @@ namespace BankAPI.Controllers
             {
                 AccountId = account.AccountId,
                 Amount = -request.Amount,
-                Type = "Debit",              // Debit för uttag
+                Type = "Debit",              // Uttag
                 Operation = "Withdraw",
                 Date = DateTime.UtcNow,
                 Balance = account.Balance
@@ -135,7 +137,7 @@ namespace BankAPI.Controllers
             {
                 AccountId = fromAccount.AccountId,
                 Amount = -request.Amount,
-                Type = "Debit",              // Debit för konto som skickar pengar
+                Type = "Debit",
                 Operation = "Transfer Out",
                 Date = DateTime.UtcNow,
                 Balance = fromAccount.Balance
@@ -145,7 +147,7 @@ namespace BankAPI.Controllers
             {
                 AccountId = toAccount.AccountId,
                 Amount = request.Amount,
-                Type = "Credit",             // Credit för konto som tar emot pengar
+                Type = "Credit",
                 Operation = "Transfer In",
                 Date = DateTime.UtcNow,
                 Balance = toAccount.Balance
@@ -157,4 +159,3 @@ namespace BankAPI.Controllers
         }
     }
 }
-

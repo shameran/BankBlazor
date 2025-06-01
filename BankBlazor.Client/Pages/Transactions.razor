@@ -5,7 +5,7 @@
 @inject CustomerService CustomerService
 @inject TransactionService TransactionService
 
-<h1>Transactions</h1>
+<h1>Transaktioner</h1>
 
 @if (errorMessage != null)
 {
@@ -22,7 +22,7 @@
 
     <div>
         <label>Från konto:</label>
-        <InputSelect @bind-Value="transactionModel.FromAccountId">
+        <InputSelect @bind-Value="transactionModel.FromAccountId" @onchange="OnFromAccountChanged">
             <option value="">-- Välj konto --</option>
             @foreach (var account in accounts)
             {
@@ -48,10 +48,9 @@
                 <option value="">-- Välj mottagarkonto --</option>
                 @foreach (var account in accounts)
                 {
-                    @* Undvik samma konto som från-konto *@
                     if (account.AccountId != transactionModel.FromAccountId)
                     {
-                        <option value="@account.AccountId">@account.AccountId</option>
+                        <option value="@account.AccountId">@account.AccountId - Saldo: @account.Balance.ToString("C")</option>
                     }
                 }
             </InputSelect>
@@ -66,16 +65,75 @@
     <button type="submit">Genomför transaktion</button>
 </EditForm>
 
+@if (fromAccount != null)
+{
+    <p class="mt-3"><strong>Saldo för konto @fromAccount.AccountId:</strong> @fromAccount.Balance.ToString("C")</p>
+
+    @if (transactions.Any())
+    {
+        <h3>Transaktionshistorik</h3>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Datum</th>
+                    <th>Typ</th>
+                    <th>Belopp</th>
+                    <th>Saldo efteråt</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var tx in transactions.OrderByDescending(t => t.Date))
+                {
+                    <tr>
+                        <td>@tx.Date.ToString("yyyy-MM-dd HH:mm")</td>
+                        <td>@tx.Type</td>
+                        <td>@tx.Amount.ToString("C")</td>
+                        <td>@tx.BalanceAfter.ToString("C")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+}
+
+@if (transactionModel.TransactionType == "Transfer" && toAccount != null)
+{
+    <p><strong>Saldo för mottagarkonto @toAccount.AccountId:</strong> @toAccount.Balance.ToString("C")</p>
+}
+
 @code {
     private List<Account> accounts = new();
+    private List<TransactionDto> transactions = new();
     private string? errorMessage;
     private string? successMessage;
 
     private TransactionInputModel transactionModel = new();
 
+    private Account? fromAccount => accounts.FirstOrDefault(a => a.AccountId == transactionModel.FromAccountId);
+    private Account? toAccount => accounts.FirstOrDefault(a => a.AccountId == transactionModel.ToAccountId);
+
     protected override async Task OnInitializedAsync()
     {
-        accounts = await CustomerService.GetAccountsAsync(); 
+        accounts = await CustomerService.GetAccountsAsync();
+    }
+
+    private async Task OnFromAccountChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int accountId))
+        {
+            transactionModel.FromAccountId = accountId;
+            await LoadTransactions(accountId);
+        }
+        else
+        {
+            transactions.Clear();
+        }
+    }
+
+    private async Task LoadTransactions(int accountId)
+    {
+        transactions = await CustomerService.GetTransactionsAsync(accountId);
+        StateHasChanged();
     }
 
     private async Task HandleValidSubmit()
@@ -91,13 +149,14 @@
 
         try
         {
+            bool result = false;
             switch (transactionModel.TransactionType)
             {
                 case "Deposit":
-                    await TransactionService.DepositAsync(transactionModel.FromAccountId, transactionModel.Amount);
+                    result = await TransactionService.DepositAsync(transactionModel.FromAccountId, transactionModel.Amount);
                     break;
                 case "Withdraw":
-                    await TransactionService.WithdrawAsync(transactionModel.FromAccountId, transactionModel.Amount);
+                    result = await TransactionService.WithdrawAsync(transactionModel.FromAccountId, transactionModel.Amount);
                     break;
                 case "Transfer":
                     if (transactionModel.ToAccountId == 0)
@@ -105,17 +164,24 @@
                         errorMessage = "Du måste välja mottagarkonto vid överföring.";
                         return;
                     }
-                    await TransactionService.TransferAsync(transactionModel.FromAccountId, transactionModel.ToAccountId, transactionModel.Amount);
+                    result = await TransactionService.TransferAsync(transactionModel.FromAccountId, transactionModel.ToAccountId, transactionModel.Amount);
                     break;
                 default:
                     errorMessage = "Ogiltig transaktionstyp.";
                     return;
             }
 
-            successMessage = "Transaktionen genomfördes!";
-            // Uppdatera konton för att visa nya saldon
-            accounts = await CustomerService.GetAccountsAsync();
-            transactionModel = new TransactionInputModel();
+            if (result)
+            {
+                successMessage = "Transaktionen genomfördes!";
+                accounts = await CustomerService.GetAccountsAsync();
+                await LoadTransactions(transactionModel.FromAccountId);
+                transactionModel = new TransactionInputModel();
+            }
+            else
+            {
+                errorMessage = "Transaktionen misslyckades.";
+            }
         }
         catch (Exception ex)
         {

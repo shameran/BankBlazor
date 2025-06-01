@@ -37,6 +37,12 @@ public class CustomerService
         return accounts ?? new List<Account>();
     }
 
+    public async Task<List<TransactionDto>> GetTransactionsAsync(int accountId)
+    {
+        var transactions = await _http.GetFromJsonAsync<List<TransactionDto>>($"api/transactions/account/{accountId}");
+        return transactions ?? new List<TransactionDto>();
+    }
+
     public async Task DepositAsync(int accountId, decimal amount)
     {
         var dto = new TransactionDto { AccountId = accountId, Amount = amount };
