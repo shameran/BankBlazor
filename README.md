@@ -1,15 +1,80 @@
-# Beskrivning
-Detta är ett startrepository för den examinerande inlämningen i kursen Systemutveckling .NET. Hämta ner detta repository och utgå ifrån det när ni bygger resten av uppgiften i ert egna GitHub konto. Applikationen ska använda sig av headless arkitektur(Client: Blazor WebAssembly Backend: .NET WebApi) med en database first implementation. Ni hittar databasen "BankBlazor.bak" som ska användas under kurstillbehör.
+BankBlazor
+A simple banking application built with Blazor WebAssembly and .NET Web API.
+
+Prerequisites
+Visual Studio 2022 or newer
+
+
+SQL Server
+
+
+.NET 9.0 or newer
 
 
 
-# Setup
-**Använd denna connectionstring för DB anslutning:** "Server=localhost;Database=BankBlazor;Trusted_Connection=True;TrustServerCertificate=true;Command Timeout=180"
-
-**Database First Scaffolding:** "Server=localhost;Database=BankBlazor;Trusted_Connection=True;TrustServerCertificate=true;Command Timeout=180" Microsoft.EntityFrameworkCore.SqlServer -OutputDir Data
+Installation
+Use the repository: https://github.com/shameran/BankBlazor.git
 
 
+Open SQL Server Management Studio.
 
-Göm inte att skriva en read me som förklarar appen och de verktyg ni använt er av!(Krav för Godkänt) Denna text är en read me.
+
+Restore the backup file BankBlazor.bak.
 
 
+Verify and update the connection string if needed:
+ The expected connection string is:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Running the Project
+Open the solution file BankBlazor.sln in Visual Studio.
+
+
+Set BankAPI as the startup project.
+
+
+Press F5 or click the Run button.
+
+
+The default browser will open and the application will start.
+
+
+
+Project Structure
+BankBlazor.Client – Client-side Blazor WebAssembly application.
+
+
+BankBlazor.Server – Server-side .NET Web API.
+
+
+BankBlazor.bak – SQL Server database backup file.
+
+
+
+Technologies Used
+Blazor WebAssembly
+
+
+ASP.NET Core Web API
+
+
+Entity Framework Core
+
+
+SQL Server
