@@ -7,22 +7,22 @@
 
 <h1>Transaktioner</h1>
 
-@if (errorMessage != null)
+@if (!string.IsNullOrEmpty(errorMessage))
 {
     <p class="text-danger">@errorMessage</p>
 }
-@if (successMessage != null)
+@if (!string.IsNullOrEmpty(successMessage))
 {
     <p class="text-success">@successMessage</p>
 }
 
-<EditForm Model="@transactionModel" OnValidSubmit="HandleValidSubmit">
+<EditForm Model="@transactionModel" OnValidSubmit="HandleValidSubmit" class="transaction-form">
     <DataAnnotationsValidator />
     <ValidationSummary />
 
-    <div>
-        <label>Från konto:</label>
-        <InputSelect @bind-Value="transactionModel.FromAccountId" @onchange="OnFromAccountChanged">
+    <div class="form-group">
+        <label for="fromAccount">Från konto:</label>
+        <InputSelect id="fromAccount" @bind-Value="transactionModel.FromAccountId" @onchange="OnFromAccountChanged" class="form-control">
             <option value="">-- Välj konto --</option>
             @foreach (var account in accounts)
             {
@@ -31,9 +31,9 @@
         </InputSelect>
     </div>
 
-    <div>
-        <label>Transaktionstyp:</label>
-        <InputSelect @bind-Value="transactionModel.TransactionType">
+    <div class="form-group">
+        <label for="transactionType">Transaktionstyp:</label>
+        <InputSelect id="transactionType" @bind-Value="transactionModel.TransactionType" class="form-control">
             <option value="Deposit">Insättning</option>
             <option value="Withdraw">Uttag</option>
             <option value="Transfer">Överföring</option>
@@ -42,9 +42,9 @@
 
     @if (transactionModel.TransactionType == "Transfer")
     {
-        <div>
-            <label>Till konto:</label>
-            <InputSelect @bind-Value="transactionModel.ToAccountId">
+        <div class="form-group">
+            <label for="toAccount">Till konto:</label>
+            <InputSelect id="toAccount" @bind-Value="transactionModel.ToAccountId" class="form-control">
                 <option value="">-- Välj mottagarkonto --</option>
                 @foreach (var account in accounts)
                 {
@@ -57,22 +57,22 @@
         </div>
     }
 
-    <div>
-        <label>Belopp:</label>
-        <InputNumber @bind-Value="transactionModel.Amount" />
+    <div class="form-group">
+        <label for="amount">Belopp:</label>
+        <InputNumber id="amount" @bind-Value="transactionModel.Amount" class="form-control" />
     </div>
 
-    <button type="submit">Genomför transaktion</button>
+    <button type="submit" class="btn btn-primary">Genomför transaktion</button>
 </EditForm>
 
 @if (fromAccount != null)
 {
-    <p class="mt-3"><strong>Saldo för konto @fromAccount.AccountId:</strong> @fromAccount.Balance.ToString("C")</p>
+    <p class="balance-info"><strong>Saldo för konto @fromAccount.AccountId:</strong> @fromAccount.Balance.ToString("C")</p>
 
     @if (transactions.Any())
     {
         <h3>Transaktionshistorik</h3>
-        <table class="table">
+        <table class="table table-striped transaction-table">
             <thead>
                 <tr>
                     <th>Datum</th>
@@ -98,7 +98,7 @@
 
 @if (transactionModel.TransactionType == "Transfer" && toAccount != null)
 {
-    <p><strong>Saldo för mottagarkonto @toAccount.AccountId:</strong> @toAccount.Balance.ToString("C")</p>
+    <p class="balance-info"><strong>Saldo för mottagarkonto @toAccount.AccountId:</strong> @toAccount.Balance.ToString("C")</p>
 }
 
 @code {
@@ -147,36 +147,28 @@
             return;
         }
 
+        if (transactionModel.TransactionType == "Transfer" && transactionModel.ToAccountId == 0)
+        {
+            errorMessage = "Du måste välja mottagarkonto vid överföring.";
+            return;
+        }
+
         try
         {
-            bool result = false;
-            switch (transactionModel.TransactionType)
+            bool result = transactionModel.TransactionType switch
             {
-                case "Deposit":
-                    result = await TransactionService.DepositAsync(transactionModel.FromAccountId, transactionModel.Amount);
-                    break;
-                case "Withdraw":
-                    result = await TransactionService.WithdrawAsync(transactionModel.FromAccountId, transactionModel.Amount);
-                    break;
-                case "Transfer":
-                    if (transactionModel.ToAccountId == 0)
-                    {
-                        errorMessage = "Du måste välja mottagarkonto vid överföring.";
-                        return;
-                    }
-                    result = await TransactionService.TransferAsync(transactionModel.FromAccountId, transactionModel.ToAccountId, transactionModel.Amount);
-                    break;
-                default:
-                    errorMessage = "Ogiltig transaktionstyp.";
-                    return;
-            }
+                "Deposit" => await TransactionService.DepositAsync(transactionModel.FromAccountId, transactionModel.Amount),
+                "Withdraw" => await TransactionService.WithdrawAsync(transactionModel.FromAccountId, transactionModel.Amount),
+                "Transfer" => await TransactionService.TransferAsync(transactionModel.FromAccountId, transactionModel.ToAccountId, transactionModel.Amount),
+                _ => false
+            };
 
             if (result)
             {
                 successMessage = "Transaktionen genomfördes!";
                 accounts = await CustomerService.GetAccountsAsync();
                 await LoadTransactions(transactionModel.FromAccountId);
-                transactionModel = new TransactionInputModel();
+                transactionModel = new TransactionInputModel(); // Reset form
             }
             else
             {
