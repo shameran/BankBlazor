@@ -14,25 +14,25 @@ namespace BankBlazor.Client.Services
             _http = http;
         }
 
-        public async Task DepositAsync(int accountId, decimal amount)
+        public async Task<bool> DepositAsync(int accountId, decimal amount)
         {
             var dto = new TransactionDto { AccountId = accountId, Amount = amount };
             var response = await _http.PostAsJsonAsync("api/transactions/deposit", dto);
-            response.EnsureSuccessStatusCode();
+            return response.IsSuccessStatusCode;
         }
 
-        public async Task WithdrawAsync(int accountId, decimal amount)
+        public async Task<bool> WithdrawAsync(int accountId, decimal amount)
         {
             var dto = new TransactionDto { AccountId = accountId, Amount = amount };
             var response = await _http.PostAsJsonAsync("api/transactions/withdraw", dto);
-            response.EnsureSuccessStatusCode();
+            return response.IsSuccessStatusCode;
         }
 
-        public async Task TransferAsync(int fromAccountId, int toAccountId, decimal amount)
+        public async Task<bool> TransferAsync(int fromAccountId, int toAccountId, decimal amount)
         {
             var dto = new TransferDto { FromAccountId = fromAccountId, ToAccountId = toAccountId, Amount = amount };
             var response = await _http.PostAsJsonAsync("api/transactions/transfer", dto);
-            response.EnsureSuccessStatusCode();
+            return response.IsSuccessStatusCode;
         }
     }
 }
